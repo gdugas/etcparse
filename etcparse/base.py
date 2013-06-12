@@ -1,4 +1,3 @@
-
 class FieldException(Exception):
     pass
 class InvalidFormat(Exception):
@@ -37,7 +36,6 @@ class Field(object):
         return str(self.cleaned_value())
     
     def clean(self, value):
-        self.validate(value)
         return value
     
     def cleaned_value(self):
