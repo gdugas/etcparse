@@ -1,66 +1,57 @@
+
 class FieldException(Exception):
     pass
+
 class InvalidFormat(Exception):
+    pass
+
+class ImplementationError(Exception):
     pass
 
 
 class Field(object):
     
-    pattern = '^\s*(?P<name>[^\s]*)\s+=\s+(?P<value>.*)\s*;$'
+    pattern = '^(?P<field>.*)$'
     
     class ValidationError(Exception):
         pass
     
-    def __init__(self, name=None, value=None, **kwargs):
-        self.name = name
-        self.value = value
-        self.kwargs = kwargs
+    def __init__(self, groupdict = {}):
+        self.groupdict = groupdict
+    
+    def get_identifier(self):
+        import uuid
+        if not getattr(self, 'uid', None):
+            self.uid = str(uuid.uuid4())
+        return self.uid
     
     @classmethod
     def match(cls, formatted, offset):
         import re
         m = re.match(cls.pattern, formatted[offset], re.MULTILINE)
-        if not m:
-            return None
-        else:
-            d = m.groupdict()
-            f = cls(**d)
-            
-            if not f.name:
-                name = 'row' + str(offset)
-                f.name = name
-            
+        if m:
+            f = cls(groupdict=m.groupdict())
             return (f, offset)
-    
-    def str_value(self):
-        return str(self.cleaned_value())
-    
-    def clean(self, value):
-        return value
-    
-    def cleaned_value(self):
-        value = self.clean(self.value)
-        self.validate(value)
-        return value
     
     def validate(self, value):
         pass
     
+    def __unicode__(self):
+        if 'field' in self.kwargs:
+            return unicode(self.kwargs)
+        else:
+            return ''
+    
     def __str__(self):
-        str_field = " = ".join([str(self.name), self.str_value()])
-        return str_field + ";"
+        return self.__unicode__()
 
 
 
 class BlankField(Field):
     pattern = '^\s*$'
     
-    def __str__(self):
+    def __unicode__(self):
         return ""
-    
-    def clean(self):
-        return ""
-
 
 
 class Fieldset(object):
@@ -101,6 +92,12 @@ class Fieldset(object):
         for field in self.fields:
             str_fieldset = str_fieldset + str(field) + '\n'
         return str_fieldset
+    
+    def __unicode__(self):
+        str_fieldset = ''
+        for field in self.fields:
+            str_fieldset = str_fieldset + unicode(field) + '\n'
+        return str_fieldset
 
 
 
@@ -116,12 +113,15 @@ class Formatter(object):
 
 class Parser(object):
     
+    formatter_class = Formatter
+    fieldset_class = Fieldset
+    
     def parse(self, content, formatter = None, fieldset = None):
-        
         if not formatter:
-            formatter = Formatter()
+            formatter = self.formatter_class()
+        
         if not fieldset:
-            fieldset = Fieldset()
+            fieldset = self.fieldset_class()
         
         formatted = formatter.format(content)
         
@@ -132,9 +132,18 @@ class Parser(object):
                 m = F.match(formatted, i)
                 if m:
                     (field, offset) = m
-                    fieldset[field.name] = field
+                    fieldset[field.get_identifier()] = field
                     i = offset
                     break
             i = i + 1
         
         return fieldset
+    
+    
+    def parse_file(self, path, formatter=None, fieldset=None):
+        f = open(path)
+        txt = ''
+        for line in f:
+            txt += line
+        return self.parse(txt, formatter=formatter, fieldset=fieldset)
+

@@ -18,13 +18,8 @@ Here is a simple config file, which contain only key / value pairs:
     
     var3 = value3;
 
-First, you need to specify a formatter, which will clean and format your 
-config file content:
-
-    formatter = etcparse.Formatter()
-
-Then, you just call your parser, which return the Fieldset associated 
-to you config file content:
+You just need to call your parser, which return the Fieldset 
+associated to you config file content:
 
     parser = etcparse.Parser()
     fieldset = parser.parse(conf)
